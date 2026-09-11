@@ -1,0 +1,27 @@
+// mock-services/grpc/greeter.proto
+//
+// Servico gRPC minimo, usado apenas para demonstrar que o k6 tambem faz
+// testes de carga sobre gRPC (modulo nativo `k6/net/grpc`, sem extensoes).
+// De proposito bem enxuto: um metodo unario (SayHello) e um metodo com
+// streaming do servidor (SayHelloStream), o suficiente para cobrir os dois
+// estilos de chamada mais comuns sem inflar o exemplo.
+syntax = "proto3";
+
+package greeter;
+
+service Greeter {
+  // Chamada unaria classica: 1 request, 1 response.
+  rpc SayHello (HelloRequest) returns (HelloResponse);
+
+  // Streaming do servidor: 1 request, N responses. Usado para exercitar o
+  // suporte do k6 a streams (relevante para APIs de eventos/telemetria).
+  rpc SayHelloStream (HelloRequest) returns (stream HelloResponse);
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloResponse {
+  string message = 1;
+}
