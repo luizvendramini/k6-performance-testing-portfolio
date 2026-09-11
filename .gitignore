@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+
+# Artefatos gerados pelas execucoes de teste (relatorios/resumos) - nao sao
+# codigo-fonte e mudam a cada run, entao nao fazem sentido versionados.
+reports/
+*-report.html
+*-summary.json
+
+.DS_Store
