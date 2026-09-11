@@ -1,0 +1,33 @@
+{
+  "name": "k6-performance-testing-portfolio",
+  "version": "1.0.0",
+  "description": "Portfolio de testes de performance com k6 e TypeScript: HTTP/REST, WebSocket, gRPC e Browser, cobrindo smoke, load, stress, spike e soak testing.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "mock:http": "tsx mock-services/server.ts",
+    "mock:grpc": "tsx mock-services/grpc/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test:smoke": "k6 run tests/http/smoke.spec.ts",
+    "test:load": "k6 run tests/http/load.spec.ts",
+    "test:stress": "k6 run tests/http/stress.spec.ts",
+    "test:spike": "k6 run tests/http/spike.spec.ts",
+    "test:soak": "k6 run tests/http/soak.spec.ts",
+    "test:ws": "k6 run tests/websocket/chat-echo.spec.ts",
+    "test:grpc": "k6 run tests/grpc/greeter.spec.ts",
+    "test:browser": "K6_BROWSER_HEADLESS=true k6 run tests/browser/product-browsing.spec.ts",
+    "test:http:all": "npm run test:smoke && npm run test:load && npm run test:stress && npm run test:spike && npm run test:soak"
+  },
+  "devDependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.13",
+    "@types/k6": "latest",
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "wait-on": "^8.0.1"
+  }
+}
