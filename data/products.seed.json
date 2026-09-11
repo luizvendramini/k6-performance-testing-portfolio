@@ -1,0 +1,15 @@
+{
+  "newProducts": [
+    { "name": "Cadeira Ergonomica", "category": "moveis", "price": 1290.0 },
+    { "name": "Suporte para Monitor", "category": "moveis", "price": 159.9 },
+    { "name": "Mousepad XL", "category": "perifericos", "price": 79.9 },
+    { "name": "Hub USB-C", "category": "perifericos", "price": 129.0 },
+    { "name": "Luminaria de Mesa LED", "category": "escritorio", "price": 99.9 },
+    { "name": "Fone Bluetooth", "category": "audio", "price": 259.0 },
+    { "name": "Microfone Condensador", "category": "audio", "price": 449.0 },
+    { "name": "Cabo HDMI 2.1", "category": "perifericos", "price": 49.9 },
+    { "name": "Suporte de Notebook", "category": "moveis", "price": 119.0 },
+    { "name": "Carregador USB-C 65W", "category": "perifericos", "price": 149.0 }
+  ],
+  "searchTerms": ["mouse", "monitor", "headset", "webcam", "teclado", "perifericos", "audio"]
+}
