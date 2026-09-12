@@ -42,11 +42,11 @@ function tags(endpoint: string): { tags: { endpoint: string } } {
 }
 
 class ProductsService {
-  health(): RefinedResponse<ResponseType | undefined> { 
+  health(): RefinedResponse<ResponseType | undefined> {
     return http.get(`${BASE_URL}/api/health`, tags('health'));
   }
 
-  list(): RefinedResponse<ResponseType | undefined> { 
+  list(): RefinedResponse<ResponseType | undefined> {
     return http.get(`${BASE_URL}/api/products`, tags('list'));
   }
 
@@ -58,14 +58,14 @@ class ProductsService {
     return http.get(`${BASE_URL}/api/products/search?q=${encodeURIComponent(term)}`, tags('search'));
   }
 
-  create(product: NewProduct): RefinedResponse<ResponseType | undefined> { 
+  create(product: NewProduct): RefinedResponse<ResponseType | undefined> {
     return http.post(`${BASE_URL}/api/products`, JSON.stringify(product), {
       headers: { 'Content-Type': 'application/json' },
       ...tags('create'),
     });
   }
 
-  update(id: number, patch: Partial<NewProduct>): RefinedResponse<ResponseType | undefined> { 
+  update(id: number, patch: Partial<NewProduct>): RefinedResponse<ResponseType | undefined> {
     return http.put(`${BASE_URL}/api/products/${id}`, JSON.stringify(patch), {
       headers: { 'Content-Type': 'application/json' },
       ...tags('update'),
@@ -87,7 +87,7 @@ export const productsService = new ProductsService();
 // ---------------------------------------------------------------------------
 // Checks reutilizaveis
 //
-// Centralizar os `check()` aqui (em vez de repeti-lo em cada spec) evita
+// Centralizar os `check()` aqui (em vez de repeti-los em cada spec) evita
 // divergencia sutil entre testes (ex: um teste checando `status === 200` e
 // outro esquecendo de checar o corpo da resposta).
 // ---------------------------------------------------------------------------
