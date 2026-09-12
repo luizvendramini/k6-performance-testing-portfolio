@@ -1,0 +1,64 @@
+name: Load Suite (load, stress, spike, soak, browser)
+
+# Ao contrario do smoke.yml, este workflow NAO roda em todo push: os testes
+# aqui geram carga real (dezenas de VUs, ate 90s de execucao sustentada) e o
+# teste de browser precisa de Chromium instalado no runner. Rodar isso a
+# cada commit desperdicaria minutos de CI e tornaria o feedback do PR mais
+# lento sem necessidade - carga/capacidade e algo que se acompanha
+# periodicamente, nao a cada linha de codigo alterada.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # toda segunda-feira, 06:00 UTC
+
+jobs:
+  load-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '2.2.0'
+          browser: true
+
+      - name: Start mock HTTP + WebSocket service
+        run: npm run mock:http &
+
+      - name: Wait for mock service to be ready
+        run: npx wait-on tcp:3000 --timeout 15000
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run load test
+        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/load.html npm run test:load -- --summary-export=reports/load-summary.json
+
+      - name: Run stress test
+        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/stress.html npm run test:stress -- --summary-export=reports/stress-summary.json
+
+      - name: Run spike test
+        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/spike.html npm run test:spike -- --summary-export=reports/spike-summary.json
+
+      - name: Run soak test
+        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/soak.html npm run test:soak -- --summary-export=reports/soak-summary.json
+
+      - name: Run browser test (product browsing)
+        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/browser.html npm run test:browser -- --summary-export=reports/browser-summary.json
+
+      - name: Upload k6 reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-load-suite-reports
+          path: reports/
+          retention-days: 30
+          if-no-files-found: warn
