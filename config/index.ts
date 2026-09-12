@@ -66,7 +66,13 @@ export const env: EnvironmentConfig = ENVIRONMENTS[currentEnvName()];
  * lenta (ver mock-services/server.ts), evitando que uma unica rota "pesada"
  * force um limite global mais frouxo para todas as outras.
  */
-export const thresholds = {
+// Tipado explicitamente como `{ [name: string]: string[] }` (o mesmo shape de
+// `Options['thresholds']`) em vez de `as const`: um objeto literal `as const`
+// torna cada array um tuplo readonly de strings literais, que o TypeScript
+// nao aceita onde a lib de tipos do k6 espera `Threshold[]` (array mutavel).
+type ThresholdSet = { [metricName: string]: string[] };
+
+export const thresholds: Record<'smoke' | 'load' | 'stress' | 'spike' | 'soak', ThresholdSet> = {
   smoke: {
     http_req_failed: ['rate<0.01'],
     http_req_duration: ['p(95)<300'],
@@ -93,4 +99,4 @@ export const thresholds = {
     http_req_duration: ['p(95)<400'],
     checks: ['rate>0.99'],
   },
-} as const;
+};
