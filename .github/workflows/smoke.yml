@@ -1,0 +1,55 @@
+name: Smoke Tests
+
+# Roda em todo push/PR: validacao rapida e deterministica de que os tres
+# protocolos cobertos pelo portfolio (HTTP, WebSocket, gRPC) continuam
+# funcionando. Os testes de carga mais pesados (load/stress/spike/soak) e
+# o modulo browser vivem em load-suite.yml, disparado manualmente/agendado -
+# nao faz sentido gastar minutos de CI gerando carga alta a cada commit.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type check
+        run: npm run typecheck
+
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '2.2.0'
+
+      - name: Start mock HTTP + WebSocket service
+        run: npm run mock:http &
+
+      - name: Start mock gRPC service
+        run: npm run mock:grpc &
+
+      # As mock-services sobem em background (acima) - um pequeno wait
+      # garante que ja estao aceitando conexoes antes do k6 comecar,
+      # evitando flakiness de "connection refused" na primeira requisicao.
+      - name: Wait for mock services to be ready
+        run: |
+          npx wait-on tcp:3000 tcp:50051 --timeout 15000
+
+      - name: Run HTTP smoke test
+        run: npm run test:smoke
+
+      - name: Run WebSocket test
+        run: npm run test:ws
+
+      - name: Run gRPC test
+        run: npm run test:grpc
