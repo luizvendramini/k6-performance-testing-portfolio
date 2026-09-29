@@ -1,7 +1,15 @@
 name: QuickPizza load suite
+run-name: k6 ${{ inputs.scenario || 'suíte semanal' }}
 
 on:
   workflow_dispatch:
+    inputs:
+      scenario:
+        description: Cenário de performance a executar pela Central
+        type: choice
+        options: [load, stress, spike, soak, browser]
+        default: load
+        required: true
   schedule:
     - cron: '0 6 * * 1'
 
@@ -40,18 +48,23 @@ jobs:
         run: mkdir -p reports
 
       - name: Run load test
+        if: github.event_name == 'schedule' || inputs.scenario == 'load'
         run: BASE_URL=http://localhost:3333 npm run test:load -- --summary-export=reports/load-summary.json
 
       - name: Run stress test
+        if: github.event_name == 'schedule' || inputs.scenario == 'stress'
         run: BASE_URL=http://localhost:3333 ALLOW_HEAVY_TESTS=true npm run test:stress -- --summary-export=reports/stress-summary.json
 
       - name: Run spike test
+        if: github.event_name == 'schedule' || inputs.scenario == 'spike'
         run: BASE_URL=http://localhost:3333 ALLOW_HEAVY_TESTS=true npm run test:spike -- --summary-export=reports/spike-summary.json
 
       - name: Run soak test
+        if: github.event_name == 'schedule' || inputs.scenario == 'soak'
         run: BASE_URL=http://localhost:3333 ALLOW_HEAVY_TESTS=true npm run test:soak -- --summary-export=reports/soak-summary.json
 
       - name: Run browser test
+        if: github.event_name == 'schedule' || inputs.scenario == 'browser'
         run: BASE_URL=http://localhost:3333 npm run test:browser -- --summary-export=reports/browser-summary.json
 
       - name: Upload k6 reports
