@@ -1,20 +1,14 @@
-name: Load Suite (load, stress, spike, soak, browser)
+name: QuickPizza load suite
 
-# Ao contrario do smoke.yml, este workflow NAO roda em todo push: os testes
-# aqui geram carga real (dezenas de VUs, ate 90s de execucao sustentada) e o
-# teste de browser precisa de Chromium instalado no runner. Rodar isso a
-# cada commit desperdicaria minutos de CI e tornaria o feedback do PR mais
-# lento sem necessidade - carga/capacidade e algo que se acompanha
-# periodicamente, nao a cada linha de codigo alterada.
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1' # toda segunda-feira, 06:00 UTC
+    - cron: '0 6 * * 1'
 
 jobs:
   load-suite:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -30,35 +24,41 @@ jobs:
           k6-version: '2.2.0'
           browser: true
 
-      - name: Start mock HTTP + WebSocket service
-        run: npm run mock:http &
+      - name: Start a private QuickPizza instance for load tests
+        run: docker run -d --name quickpizza -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
 
-      - name: Wait for mock service to be ready
-        run: npx wait-on tcp:3000 --timeout 15000
+      - name: Wait for QuickPizza
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3333/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "QuickPizza did not become ready in time" >&2
+          exit 1
 
       - name: Create reports directory
         run: mkdir -p reports
 
       - name: Run load test
-        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/load.html npm run test:load -- --summary-export=reports/load-summary.json
+        run: BASE_URL=http://localhost:3333 npm run test:load -- --summary-export=reports/load-summary.json
 
       - name: Run stress test
-        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/stress.html npm run test:stress -- --summary-export=reports/stress-summary.json
+        run: BASE_URL=http://localhost:3333 ALLOW_HEAVY_TESTS=true npm run test:stress -- --summary-export=reports/stress-summary.json
 
       - name: Run spike test
-        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/spike.html npm run test:spike -- --summary-export=reports/spike-summary.json
+        run: BASE_URL=http://localhost:3333 ALLOW_HEAVY_TESTS=true npm run test:spike -- --summary-export=reports/spike-summary.json
 
       - name: Run soak test
-        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/soak.html npm run test:soak -- --summary-export=reports/soak-summary.json
+        run: BASE_URL=http://localhost:3333 ALLOW_HEAVY_TESTS=true npm run test:soak -- --summary-export=reports/soak-summary.json
 
-      - name: Run browser test (product browsing)
-        run: K6_WEB_DASHBOARD=true K6_WEB_DASHBOARD_EXPORT=reports/browser.html npm run test:browser -- --summary-export=reports/browser-summary.json
+      - name: Run browser test
+        run: BASE_URL=http://localhost:3333 npm run test:browser -- --summary-export=reports/browser-summary.json
 
       - name: Upload k6 reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-load-suite-reports
+          name: k6-quickpizza-load-suite
           path: reports/
           retention-days: 30
           if-no-files-found: warn

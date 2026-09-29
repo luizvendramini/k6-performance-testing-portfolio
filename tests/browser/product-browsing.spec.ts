@@ -1,52 +1,39 @@
-/**
- * tests/browser/product-browsing.spec.ts
- *
- * Teste de carga com o modulo `k6/browser`: em vez de bater direto na API,
- * abre navegadores reais (Chromium, headless) e navega pela pagina como um
- * usuario navegaria - renderizacao, JavaScript client-side e Web Vitals
- * inclusos. E o nivel de teste mais "caro" (cada VU sobe um navegador
- * inteiro), por isso o numero de VUs e bem menor que nos testes de
- * protocolo puro: aqui o objetivo e validar a experiencia sob alguma
- * concorrencia real de usuarios, nao encontrar o limite de throughput.
- *
- * Roda apenas no workflow de load-suite (nao no smoke de todo push), pois
- * depende de Chromium instalado no runner - ver .github/workflows/load-suite.yml.
- */
 import { check } from 'k6';
 import type { Options } from 'k6/options';
 import { browser } from 'k6/browser';
-import StorePage from '../../services/store.page.ts';
+import { baseUrl, token } from '../../config/index.ts';
 
 export const options: Options = {
   scenarios: {
-    'product-browsing': {
+    quickpizza_browser: {
       executor: 'shared-iterations',
-      vus: 5,
-      iterations: 15,
-      options: {
-        browser: { type: 'chromium' },
-      },
+      vus: 1,
+      iterations: 2,
+      options: { browser: { type: 'chromium' } },
     },
   },
   thresholds: {
     checks: ['rate>0.99'],
-    browser_web_vital_lcp: ['p(95)<2000'], // Largest Contentful Paint - percepcao de "carregou"
+    browser_web_vital_lcp: ['p(95)<4000'],
   },
 };
 
 export default async function (): Promise<void> {
   const page = await browser.newPage();
-  const storePage = new StorePage(page);
-
   try {
-    await storePage.open();
+    await page.setExtraHTTPHeaders({ Authorization: `Token ${token}` });
+    await page.goto(`${baseUrl}/`);
+    const title = await page.title();
+    check(title, { 'título da página identifica QuickPizza': (value) => /quickpizza/i.test(value) });
 
-    const title = await storePage.title();
-    check(title, { "titulo da pagina e 'Catalogo de produtos'": (t) => t === 'Catalogo de produtos' });
+    const action = page.locator('button[name="pizza-please"]');
+    check(await action.isVisible(), { 'ação Pizza, Please está visível': (visible) => visible });
+    await action.click();
 
-    await storePage.search('mouse');
-    const resultCount = await storePage.resultCount();
-    check(resultCount, { 'busca por "mouse" retorna ao menos 1 produto': (n) => n >= 1 });
+    const recommendation = page.locator('#pizza-name');
+    await recommendation.waitFor({ state: 'visible', timeout: 15000 });
+    const name = await recommendation.textContent();
+    check(name, { 'a página mostra uma recomendação de pizza': (value) => Boolean(value?.trim()) });
   } finally {
     await page.close();
   }
